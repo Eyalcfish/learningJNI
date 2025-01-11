@@ -1,0 +1,115 @@
+<html>
+<head>
+<title>jni_HelloWorld.cpp</title>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+.s0 { color: #cf8e6d;}
+.s1 { color: #bcbec4;}
+.s2 { color: #6aab73;}
+.s3 { color: #c77dbb;}
+.s4 { color: #2aacb8;}
+.s5 { color: #0da19e;}
+</style>
+</head>
+<body bgcolor="#1e1f22">
+<table CELLSPACING=0 CELLPADDING=5 COLS=1 WIDTH="100%" BGCOLOR="#606060" >
+<tr><td><center>
+<font face="Arial, Helvetica" color="#000000">
+jni_HelloWorld.cpp</font>
+</center></td></tr></table>
+<pre><span class="s0">#include </span><span class="s1">&lt;iostream&gt;</span>
+<span class="s0">#include </span><span class="s1">&lt;vector&gt;</span>
+<span class="s0">#include </span><span class="s1">&lt;fstream&gt;</span>
+<span class="s0">#include </span><span class="s1">&lt;string&gt;</span>
+<span class="s0">#include </span><span class="s1">&lt;jni.h&gt;</span>
+<span class="s0">#include </span><span class="s2">&quot;C:/Users/fishministrator/IdeaProjects/jniAttempts/out/bonus/jni_HelloWorld.h&quot;</span>
+
+<span class="s3">using namespace </span><span class="s1">std;</span>
+
+<span class="s3">inline </span><span class="s1">vector&lt;vector&lt;</span><span class="s0">float</span><span class="s1">&gt;&gt; fileOutput(string data);</span>
+
+<span class="s1">vector&lt;string&gt; split(string x, </span><span class="s0">char </span><span class="s1">delim);</span>
+
+<span class="s3">inline </span><span class="s1">vector&lt;vector&lt;</span><span class="s0">float</span><span class="s1">&gt;&gt; sortValues(string data);</span>
+
+<span class="s1">string jstringToStdString(JNIEnv* env, jstring jStr);</span>
+
+<span class="s1">jfloatArray convertVectorToJava(JNIEnv* env, </span><span class="s0">const </span><span class="s1">std::vector&lt;</span><span class="s0">float</span><span class="s1">&gt;&amp; vec);</span>
+
+<span class="s1">jobjectArray create2DFloatArray(JNIEnv* env, </span><span class="s0">const </span><span class="s1">std::vector&lt;jfloatArray&gt;&amp; inputVec);</span>
+
+
+<span class="s1">JNIEXPORT _jobjectArray* JNICALL Java_jni_HelloWorld_fileOutput(JNIEnv* env, jobject obj,jstring data) {</span>
+    <span class="s1">vector&lt;vector&lt;</span><span class="s0">float</span><span class="s1">&gt;&gt; matrix = fileOutput(jstringToStdString(env,data));</span>
+    <span class="s1">size_t size = matrix.size();</span>
+    <span class="s1">vector&lt;jfloatArray&gt; array(matrix.size());</span>
+    <span class="s0">for</span><span class="s1">(</span><span class="s0">int </span><span class="s1">i = </span><span class="s4">0 </span><span class="s1">; i &lt; size ; i++) {</span>
+        <span class="s1">array[i] = convertVectorToJava(env,matrix[i]);</span>
+    <span class="s1">}</span>
+    <span class="s0">return </span><span class="s1">create2DFloatArray(env,array);</span>
+<span class="s1">}</span>
+
+<span class="s3">inline </span><span class="s1">vector&lt;vector&lt;</span><span class="s0">float</span><span class="s1">&gt;&gt; fileOutput(string data) {</span>
+    <span class="s0">return </span><span class="s1">sortValues(data);</span>
+<span class="s1">}</span>
+
+<span class="s3">inline </span><span class="s1">vector&lt;vector&lt;</span><span class="s0">float</span><span class="s1">&gt;&gt; sortValues(string data) {</span>
+    <span class="s1">vector&lt;vector&lt;</span><span class="s0">float</span><span class="s1">&gt;&gt; ret(</span><span class="s4">7</span><span class="s1">);</span>
+    <span class="s1">vector&lt;string&gt; lines = split(data,</span><span class="s2">'</span><span class="s0">\n</span><span class="s2">'</span><span class="s1">);</span>
+    <span class="s1">vector&lt;string&gt; tempRow(</span><span class="s4">7</span><span class="s1">);</span>
+    <span class="s0">for</span><span class="s1">(</span><span class="s0">int </span><span class="s1">i = </span><span class="s4">0 </span><span class="s1">;i &lt; lines.size() ; i++) {</span>
+        <span class="s1">tempRow = split(lines[i],</span><span class="s2">','</span><span class="s1">);</span>
+        <span class="s0">for</span><span class="s1">(</span><span class="s0">int </span><span class="s1">f = </span><span class="s4">0 </span><span class="s1">; f &lt; </span><span class="s4">7 </span><span class="s1">; f++) {</span>
+            <span class="s1">ret[f].push_back(stof(tempRow[f]));</span>
+        <span class="s1">}</span>
+    <span class="s1">}</span>
+    <span class="s0">return </span><span class="s1">ret;</span>
+<span class="s1">}</span>
+
+<span class="s3">inline </span><span class="s1">jfloatArray convertVectorToJava(JNIEnv* env, </span><span class="s0">const </span><span class="s1">std::vector&lt;</span><span class="s0">float</span><span class="s1">&gt;&amp; vec) {</span>
+    <span class="s1">size_t size = vec.size();</span>
+    <span class="s1">jfloatArray javaArray = env</span><span class="s5">-&gt;</span><span class="s1">NewFloatArray(size);</span>
+    <span class="s1">env</span><span class="s5">-&gt;</span><span class="s1">SetFloatArrayRegion(javaArray, </span><span class="s4">0</span><span class="s1">, size, vec.data());</span>
+    <span class="s0">return </span><span class="s1">javaArray;</span>
+<span class="s1">}</span>
+
+<span class="s3">inline </span><span class="s1">jobjectArray create2DFloatArray(JNIEnv* env, </span><span class="s0">const </span><span class="s1">std::vector&lt;jfloatArray&gt;&amp; inputVec)</span>
+<span class="s1">{</span>
+    <span class="s1">jclass floatArrayClass = env</span><span class="s5">-&gt;</span><span class="s1">FindClass(</span><span class="s2">&quot;[F&quot;</span><span class="s1">);</span>
+    <span class="s1">size_t rows = inputVec.size();</span>
+    <span class="s1">jobjectArray twoDimArray = env</span><span class="s5">-&gt;</span><span class="s1">NewObjectArray(rows, floatArrayClass, nullptr);</span>
+    <span class="s0">for </span><span class="s1">(size_t i = </span><span class="s4">0</span><span class="s1">; i &lt; rows; i++) {</span>
+        <span class="s1">env</span><span class="s5">-&gt;</span><span class="s1">SetObjectArrayElement(twoDimArray, i, inputVec[i]);</span>
+    <span class="s1">}</span>
+    <span class="s0">return </span><span class="s1">twoDimArray;</span>
+<span class="s1">}</span>
+
+<span class="s3">inline </span><span class="s1">string jstringToStdString(JNIEnv* env, jstring jStr) {</span>
+    <span class="s0">if </span><span class="s1">(!jStr) {</span>
+        <span class="s0">return </span><span class="s2">&quot;&quot;</span><span class="s1">;</span>
+    <span class="s1">}</span>
+    <span class="s0">const char</span><span class="s1">* utfChars = env</span><span class="s5">-&gt;</span><span class="s1">GetStringUTFChars(jStr, nullptr);</span>
+    <span class="s1">string result(utfChars);</span>
+    <span class="s1">env</span><span class="s5">-&gt;</span><span class="s1">ReleaseStringUTFChars(jStr, utfChars);</span>
+    <span class="s0">return </span><span class="s1">result;</span>
+<span class="s1">}</span>
+
+<span class="s3">inline </span><span class="s1">vector&lt;string&gt; split(string x, </span><span class="s0">char </span><span class="s1">delim)</span>
+<span class="s1">{</span>
+    <span class="s1">x += delim;</span>
+    <span class="s1">vector&lt;string&gt; splitted;</span>
+    <span class="s1">string temp = </span><span class="s2">&quot;&quot;</span><span class="s1">;</span>
+    <span class="s0">for </span><span class="s1">(</span><span class="s0">int </span><span class="s1">i = </span><span class="s4">0</span><span class="s1">; i &lt; x.length(); i++)</span>
+    <span class="s1">{</span>
+        <span class="s0">if </span><span class="s1">(x[i] == delim)</span>
+        <span class="s1">{</span>
+            <span class="s1">splitted.push_back(temp);</span>
+            <span class="s1">temp = </span><span class="s2">&quot;&quot;</span><span class="s1">;</span>
+            <span class="s1">i++;</span>
+        <span class="s1">}</span>
+        <span class="s1">temp += x[i];</span>
+    <span class="s1">}</span>
+    <span class="s0">return </span><span class="s1">splitted;</span>
+<span class="s1">}</span></pre>
+</body>
+</html>

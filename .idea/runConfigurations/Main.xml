@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Main" type="Application" factoryName="Application" activateToolWindowBeforeRun="false" nameIsGenerated="true" show_console_on_std_out="true">
+    <envs>
+      <env name="OUTPUT" value="&quot;C:\Users\fishministrator\IdeaProjects\jniAttempts\src\jni\bonus&quot;" />
+    </envs>
+    <option name="MAIN_CLASS_NAME" value="jni.Main" />
+    <module name="jniAttempts" />
+    <option name="PROGRAM_PARAMETERS" value="$Classpath$" />
+    <method v="2">
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_build java" />
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_build cpp 1" />
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_build cpp 2" />
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_run code" />
+      <option name="ToolBeforeRunTask" enabled="true" actionId="Tool_External Tools_delete bonus" />
+    </method>
+  </configuration>
+</component>
