@@ -3,9 +3,11 @@
 #include <fstream>
 #include <string>
 #include <jni.h>
-#include "C:/Users/Eyal/IdeaProjects/jniAttempts/out/bonus/jni_HelloWorld.h"
+#include "C:/Users/Eyal/IdeaProjects/jniAttempts/out/bonus/jni_NativePipe.h"
 
 using namespace std;
+
+inline vector<string> readFiles(vector<string> paths);
 
 inline vector<vector<float>> fileOutput(string data);
 
@@ -19,8 +21,15 @@ jfloatArray convertVectorToJava(JNIEnv* env, const std::vector<float>& vec);
 
 jobjectArray create2DFloatArray(JNIEnv* env, const std::vector<jfloatArray>& inputVec);
 
+jobjectArray vectorToJObjectArray(JNIEnv* env, vector<string>& vec);
 
-JNIEXPORT _jobjectArray* JNICALL Java_jni_HelloWorld_fileOutput(JNIEnv* env, jobject obj,jstring data) {
+vector<string> jobjectArrayToVector(JNIEnv* env, jobjectArray jArray);
+
+
+// NativePipe:
+// public float[][] fileOutput(String data)
+// Native implementation
+JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, jobject obj,jstring data) {
     vector<vector<float>> matrix = fileOutput(jstringToStdString(env,data));
     size_t size = matrix.size();
     vector<jfloatArray> array(matrix.size());
@@ -30,6 +39,35 @@ JNIEXPORT _jobjectArray* JNICALL Java_jni_HelloWorld_fileOutput(JNIEnv* env, job
     return create2DFloatArray(env,array);
 }
 
+// NativePipe:
+// public String[] readFiles(String[] paths)
+// Native implementation
+JNIEXPORT jobjectArray JNICALL Java_jni_NativePipe_readFiles(JNIEnv * env, jobject obj, jobjectArray paths) {
+    vector<string> CPP_paths = jobjectArrayToVector(env,paths);
+    vector<string> datas = readFiles(CPP_paths);
+    return vectorToJObjectArray(env,datas);
+}
+
+// HelloWorld:
+// public string[] readFiles(String[] paths)
+// CPP
+inline vector<string> readFiles(vector<string> paths) {
+    size_t amountOfPaths = paths.size();
+    vector<string> ret(amountOfPaths);
+    string s;
+    for(int i = 0; i < amountOfPaths ; i++) {
+        ifstream file;
+        file.open(paths[i]);
+        while (getline(file, s))
+            ret[i] += s + '\n';
+        file.close();
+    }
+    return ret;
+}
+
+// HelloWorld:
+// public float[][] fileOutput(String data)
+// CPP
 inline vector<vector<float>> fileOutput(string data) {
     return sortValues(data);
 }
@@ -91,4 +129,31 @@ inline vector<string> split(string x, char delim)
         temp += x[i];
     }
     return splitted;
+}
+
+jobjectArray vectorToJObjectArray(JNIEnv* env, vector<string>& vec) {
+    jclass stringClass = env->FindClass("java/lang/String");
+    jobjectArray jArray = env->NewObjectArray(vec.size(), stringClass, nullptr);
+    for (size_t i = 0; i < vec.size(); ++i) {
+        jstring jStr = env->NewStringUTF(vec[i].c_str());
+        env->SetObjectArrayElement(jArray, i, jStr);
+        env->DeleteLocalRef(jStr);
+    }
+    return jArray;
+}
+
+vector<string> jobjectArrayToVector(JNIEnv* env, jobjectArray jArray) {
+    vector<string> vec;
+
+    jsize arrayLength = env->GetArrayLength(jArray);
+    for (jsize i = 0; i < arrayLength; ++i) {
+        jstring jStr = (jstring)env->GetObjectArrayElement(jArray, i);
+        const char* cStr = env->GetStringUTFChars(jStr, nullptr);
+        if (cStr) {
+            vec.emplace_back(cStr);
+            env->ReleaseStringUTFChars(jStr, cStr);
+        }
+        env->DeleteLocalRef(jStr);
+    }
+    return vec;
 }

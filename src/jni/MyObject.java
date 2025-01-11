@@ -1,5 +1,11 @@
 package jni;
 
 public class MyObject {
-    public float[] a = new float[7];
+    public String[] filePaths;
+    public String[] files;
+
+    public MyObject(String[] filePaths) {
+        this.filePaths = filePaths;
+        files = new NativePipe().readFiles(filePaths);
+    }
 }
