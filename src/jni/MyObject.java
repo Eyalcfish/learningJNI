@@ -2,7 +2,7 @@ package jni;
 
 public class MyObject {
     public String[] filePaths;
-    public String[] files;
+    public byte[][] files;
 
     public MyObject(String[] filePaths) {
         this.filePaths = filePaths;

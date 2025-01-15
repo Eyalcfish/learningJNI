@@ -6,7 +6,7 @@ public class NativePipe {
         System.loadLibrary("native");
     }
 
-    public native String[] readFiles(String[] paths);
+    public native byte[][] readFiles(String[] paths);
 
-    public native float[][] fileOutput(String data);
+    public native float[][] fileOutput(byte[] data);
 }

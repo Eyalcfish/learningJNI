@@ -2,10 +2,20 @@
 #include <vector>
 #include <fstream>
 #include <string>
+#include <cmath>
 #include <jni.h>
 #include "C:/Users/Eyal/IdeaProjects/jniAttempts/out/bonus/jni_NativePipe.h"
 
+#define getBit(num,bit) (1 == ( (num >> bit) & 1))
+#define setBit(num,bit) (num |= 1 << bit)
+
 using namespace std;
+
+int get_file_size(std::string filename);
+
+vector<string> compress(vector<string> contents);
+
+string decompress(string content);
 
 inline vector<string> readFiles(vector<string> paths);
 
@@ -21,7 +31,7 @@ jfloatArray convertVectorToJava(JNIEnv* env, const std::vector<float>& vec);
 
 jobjectArray create2DFloatArray(JNIEnv* env, const std::vector<jfloatArray>& inputVec);
 
-jobjectArray vectorToJObjectArray(JNIEnv* env, vector<string>& vec);
+jobjectArray convertVectorToByteArray(JNIEnv* env, vector<string>& vector);
 
 vector<string> jobjectArrayToVector(JNIEnv* env, jobjectArray jArray);
 
@@ -29,8 +39,13 @@ vector<string> jobjectArrayToVector(JNIEnv* env, jobjectArray jArray);
 // NativePipe:
 // public float[][] fileOutput(String data)
 // Native implementation
-JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, jobject obj,jstring data) {
-    vector<vector<float>> matrix = fileOutput(jstringToStdString(env,data));
+JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, jobject obj,jbyteArray data) {
+    jsize length = env->GetArrayLength(data);
+    jbyte* bytes = env->GetByteArrayElements(data, nullptr);
+    std::string str(reinterpret_cast<char*>(bytes), length);
+    env->ReleaseByteArrayElements(data, bytes, JNI_ABORT);
+    //
+    vector<vector<float>> matrix = fileOutput(str);
     size_t size = matrix.size();
     vector<jfloatArray> array(matrix.size());
     for(int i = 0 ; i < size ; i++) {
@@ -45,7 +60,7 @@ JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, job
 JNIEXPORT jobjectArray JNICALL Java_jni_NativePipe_readFiles(JNIEnv * env, jobject obj, jobjectArray paths) {
     vector<string> CPP_paths = jobjectArrayToVector(env,paths);
     vector<string> datas = readFiles(CPP_paths);
-    return vectorToJObjectArray(env,datas);
+    return convertVectorToByteArray(env,datas);
 }
 
 // HelloWorld:
@@ -53,23 +68,28 @@ JNIEXPORT jobjectArray JNICALL Java_jni_NativePipe_readFiles(JNIEnv * env, jobje
 // CPP
 inline vector<string> readFiles(vector<string> paths) {
     size_t amountOfPaths = paths.size();
-    vector<string> ret(amountOfPaths);
+    vector<string> contents(amountOfPaths);
     string s;
     for(int i = 0; i < amountOfPaths ; i++) {
         ifstream file;
         file.open(paths[i]);
         while (getline(file, s))
-            ret[i] += s + '\n';
+            contents[i] += s + '\n';
         file.close();
     }
-    return ret;
+    //cout << contents[0] << endl;
+    //cout << compress(contents)[0] << endl;
+    //cout << decompress(compress(contents)[0]) << endl;
+    return compress(contents);
 }
 
 // HelloWorld:
 // public float[][] fileOutput(String data)
 // CPP
 inline vector<vector<float>> fileOutput(string data) {
-    return sortValues(data);
+    //cout << data;
+    //cout << decompress(data);
+    return sortValues(decompress(data));
 }
 
 inline vector<vector<float>> sortValues(string data) {
@@ -92,8 +112,7 @@ inline jfloatArray convertVectorToJava(JNIEnv* env, const std::vector<float>& ve
     return javaArray;
 }
 
-inline jobjectArray create2DFloatArray(JNIEnv* env, const std::vector<jfloatArray>& inputVec)
-{
+inline jobjectArray create2DFloatArray(JNIEnv* env, const std::vector<jfloatArray>& inputVec){
     jclass floatArrayClass = env->FindClass("[F");
     size_t rows = inputVec.size();
     jobjectArray twoDimArray = env->NewObjectArray(rows, floatArrayClass, nullptr);
@@ -113,8 +132,7 @@ inline string jstringToStdString(JNIEnv* env, jstring jStr) {
     return result;
 }
 
-inline vector<string> split(string x, char delim)
-{
+inline vector<string> split(string x, char delim){
     x += delim;
     vector<string> splitted;
     string temp = "";
@@ -131,15 +149,17 @@ inline vector<string> split(string x, char delim)
     return splitted;
 }
 
-jobjectArray vectorToJObjectArray(JNIEnv* env, vector<string>& vec) {
-    jclass stringClass = env->FindClass("java/lang/String");
-    jobjectArray jArray = env->NewObjectArray(vec.size(), stringClass, nullptr);
-    for (size_t i = 0; i < vec.size(); ++i) {
-        jstring jStr = env->NewStringUTF(vec[i].c_str());
-        env->SetObjectArrayElement(jArray, i, jStr);
-        env->DeleteLocalRef(jStr);
+jobjectArray convertVectorToByteArray(JNIEnv* env, vector<string>& vector) {
+    jclass byteArrayClass = env->FindClass("[B");
+    jobjectArray outerArray = env->NewObjectArray(vector.size(), byteArrayClass, nullptr);
+    for (size_t i = 0; i < vector.size(); ++i) {
+        const std::string& str = vector[i];
+        jbyteArray innerArray = env->NewByteArray(str.size());
+        env->SetByteArrayRegion(innerArray, 0, str.size(), reinterpret_cast<const jbyte*>(str.data()));
+        env->SetObjectArrayElement(outerArray, i, innerArray);
+        env->DeleteLocalRef(innerArray);
     }
-    return jArray;
+    return outerArray;
 }
 
 vector<string> jobjectArrayToVector(JNIEnv* env, jobjectArray jArray) {
@@ -156,4 +176,119 @@ vector<string> jobjectArrayToVector(JNIEnv* env, jobjectArray jArray) {
         env->DeleteLocalRef(jStr);
     }
     return vec;
+}
+
+int get_file_size(std::string filename) {
+    FILE *p_file = NULL;
+    p_file = fopen(filename.c_str(),"rb");
+    fseek(p_file,0,SEEK_END);
+    int size = ftell(p_file);
+    fclose(p_file);
+    return size;
+}
+
+vector<string> compress(vector<string> contents) {
+    vector<string> ret(contents.size());
+    int a = 0;
+    for(string str : contents) {
+        int size = (str.length()+1)/2;
+        char buffer = 0;
+        string value = "";
+        for(int i = 0 ; i < size ; i++) {
+            char num = 0;
+            for(int f = 0 ; f < 2 ; f++) {
+                char curchar = str[i*2+f];
+                switch(curchar){
+                    case ',':
+                        num =  10;
+                        break;
+                    case '-':
+                        num = 11;
+                        break;
+                    case '.':
+                        num = 12;
+                        break;
+                    case '\n':
+                        num = 13;
+                        break;
+                    case 'E':
+                        num = 14;
+                        break;
+                    default:
+                        num = curchar-'0';
+                }
+                for(int j = 0 ; j < 4 ; j++) {
+                    size_t place = j;
+                    //cout << getBit(num,place);
+                    if(getBit(num,place)) {
+                        setBit(buffer,place+f*4);
+                    }
+                }
+                //cout << endl;
+            }
+            value += buffer;
+            buffer = 0;
+        }
+        ret[a] = value;
+    }
+    cout << "compressed to: " << ret[0].length() << " from: " << contents[0].length() << endl;
+    return ret;
+}
+
+string decompress(string content) {
+    string value = "";
+    size_t strSize = content.length();
+    char curchar = 0;
+    for(int f = 0 ; f < strSize ; f++){
+        char buffer1 = 0;
+        char buffer2 = 0;
+        curchar = content[f];
+        for(int j = 0 ; j < 4 ; j++) {
+            if(getBit(curchar,j)) setBit(buffer1,j);
+        }
+        for(int j = 0 ; j < 4 ; j++) {
+            if(getBit(curchar,j+4)) setBit(buffer2,j);
+        }
+        switch(buffer1){
+            case 14:
+                buffer1 = 'E';
+                break;
+            case 13:
+                buffer1 = '\n';
+                break;
+            case 12:
+                buffer1 = '.';
+                break;
+            case 11:
+                buffer1 = '-';
+                break;
+            case 10:
+                buffer1 = ',';
+                break;
+            default:
+                buffer1 += '0';
+        }
+        switch(buffer2){
+            case 14:
+                buffer2 = 'E';
+                break;
+            case 13:
+                buffer2 = '\n';
+                break;
+            case 12:
+                buffer2 = '.';
+                break;
+            case 11:
+                buffer2 = '-';
+                break;
+            case 10:
+                buffer2 = ',';
+                break;
+            default:
+                buffer2 += '0';
+        }
+        value += buffer1;
+        value += buffer2;
+    }
+    return value;
 }
