@@ -7,7 +7,7 @@
 #include "C:/Users/Eyal/IdeaProjects/jniAttempts/out/bonus/jni_NativePipe.h"
 
 #define getBit(num,bit) (1 == ( (num >> bit) & 1))
-#define setBit(num,bit) (num |= 1 << bit)
+#define setBit(num,bit,bol) (num |= bol << bit)
 
 using namespace std;
 
@@ -15,13 +15,13 @@ int get_file_size(std::string filename);
 
 vector<string> compress(vector<string> contents);
 
-string decompress(string content);
+string decompress(const string& content);
 
 inline vector<string> readFiles(vector<string> paths);
 
 inline vector<vector<float>> fileOutput(string data);
 
-vector<string> split(string x, char delim);
+std::vector<std::string> split(const std::string& input, char delimiter);
 
 inline vector<vector<float>> sortValues(string data);
 
@@ -39,7 +39,7 @@ vector<string> jobjectArrayToVector(JNIEnv* env, jobjectArray jArray);
 // NativePipe:
 // public float[][] fileOutput(String data)
 // Native implementation
-JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, jobject obj,jbyteArray data) {
+JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, jclass obj,jbyteArray data) {
     jsize length = env->GetArrayLength(data);
     jbyte* bytes = env->GetByteArrayElements(data, nullptr);
     std::string str(reinterpret_cast<char*>(bytes), length);
@@ -57,7 +57,7 @@ JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, job
 // NativePipe:
 // public String[] readFiles(String[] paths)
 // Native implementation
-JNIEXPORT jobjectArray JNICALL Java_jni_NativePipe_readFiles(JNIEnv * env, jobject obj, jobjectArray paths) {
+JNIEXPORT jobjectArray JNICALL Java_jni_NativePipe_readFiles(JNIEnv * env, jclass obj, jobjectArray paths) {
     vector<string> CPP_paths = jobjectArrayToVector(env,paths);
     vector<string> datas = readFiles(CPP_paths);
     return convertVectorToByteArray(env,datas);
@@ -73,33 +73,40 @@ inline vector<string> readFiles(vector<string> paths) {
     for(int i = 0; i < amountOfPaths ; i++) {
         ifstream file;
         file.open(paths[i]);
+        getline(file, s);
         while (getline(file, s))
             contents[i] += s + '\n';
         file.close();
     }
-    //cout << contents[0] << endl;
-    //cout << compress(contents)[0] << endl;
-    //cout << decompress(compress(contents)[0]) << endl;
+    //return contents;//compress(contents);
     return compress(contents);
+    //return {"1"};
 }
 
 // HelloWorld:
 // public float[][] fileOutput(String data)
 // CPP
 inline vector<vector<float>> fileOutput(string data) {
-    //cout << data;
-    //cout << decompress(data);
+    //return sortValues(data);//decompress(data));
     return sortValues(decompress(data));
+    //string str = decompress(data);
+    //string str = "1,2,3,4,5,6,7,\n1,2,3,4,5,6,7";
+    //sortValues(str);
+    //decompress(data)
+    //return {{1}};
 }
 
 inline vector<vector<float>> sortValues(string data) {
     vector<vector<float>> ret(7);
     vector<string> lines = split(data,'\n');
-    vector<string> tempRow(7);
-    for(int i = 0 ;i < lines.size() ; i++) {
-        tempRow = split(lines[i],',');
+    size_t linesAmount = lines.size();
+    for(int i = 0 ; i < 7 ; i++) {
+        ret[i] = vector<float>(linesAmount);
+    }
+    for(int i = 0 ; i < linesAmount ; i++) {
+        vector<string> splited = split(lines[i],',');
         for(int f = 0 ; f < 7 ; f++) {
-            ret[f].push_back(stof(tempRow[f]));
+            ret[f][i] = stof(splited[f]);
         }
     }
     return ret;
@@ -132,21 +139,23 @@ inline string jstringToStdString(JNIEnv* env, jstring jStr) {
     return result;
 }
 
-inline vector<string> split(string x, char delim){
-    x += delim;
-    vector<string> splitted;
-    string temp = "";
-    for (int i = 0; i < x.length(); i++)
-    {
-        if (x[i] == delim)
-        {
-            splitted.push_back(temp);
-            temp = "";
-            i++;
-        }
-        temp += x[i];
+std::vector<std::string> split(const std::string& input, char delimiter) {
+    std::vector<std::string> result;
+    result.reserve(10); // Initial reserve (adjust based on expected size if known)
+
+    size_t start = 0;
+    size_t end;
+
+    while ((end = input.find(delimiter, start)) != string::npos) {
+        result.emplace_back(input, start, end - start); // Efficient in-place construction
+        start = end + 1;
     }
-    return splitted;
+
+    if (start < input.size()) { // Add the last segment
+        result.emplace_back(input, start, input.size() - start);
+    }
+
+    return result;
 }
 
 jobjectArray convertVectorToByteArray(JNIEnv* env, vector<string>& vector) {
@@ -220,9 +229,7 @@ vector<string> compress(vector<string> contents) {
                 for(int j = 0 ; j < 4 ; j++) {
                     size_t place = j;
                     //cout << getBit(num,place);
-                    if(getBit(num,place)) {
-                        setBit(buffer,place+f*4);
-                    }
+                    setBit(buffer,place+f*4,getBit(num,place));
                 }
                 //cout << endl;
             }
@@ -231,64 +238,28 @@ vector<string> compress(vector<string> contents) {
         }
         ret[a] = value;
     }
-    cout << "compressed to: " << ret[0].length() << " from: " << contents[0].length() << endl;
     return ret;
 }
 
-string decompress(string content) {
-    string value = "";
+string decompress(const string& content) {
     size_t strSize = content.length();
-    char curchar = 0;
-    for(int f = 0 ; f < strSize ; f++){
+    string value;
+    value.resize(strSize * 2);
+    static constexpr char lookup[15] = {
+        '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',',', '-', '.', '\n', 'E'
+    };
+    for (size_t f = 0; f < strSize; ++f) {
+        char curchar = content[f];
         char buffer1 = 0;
         char buffer2 = 0;
-        curchar = content[f];
-        for(int j = 0 ; j < 4 ; j++) {
-            if(getBit(curchar,j)) setBit(buffer1,j);
+        for (int j = 0; j < 4; ++j) {
+            setBit(buffer1, j, getBit(curchar, j));
+            setBit(buffer2, j, getBit(curchar, j + 4));
         }
-        for(int j = 0 ; j < 4 ; j++) {
-            if(getBit(curchar,j+4)) setBit(buffer2,j);
-        }
-        switch(buffer1){
-            case 14:
-                buffer1 = 'E';
-                break;
-            case 13:
-                buffer1 = '\n';
-                break;
-            case 12:
-                buffer1 = '.';
-                break;
-            case 11:
-                buffer1 = '-';
-                break;
-            case 10:
-                buffer1 = ',';
-                break;
-            default:
-                buffer1 += '0';
-        }
-        switch(buffer2){
-            case 14:
-                buffer2 = 'E';
-                break;
-            case 13:
-                buffer2 = '\n';
-                break;
-            case 12:
-                buffer2 = '.';
-                break;
-            case 11:
-                buffer2 = '-';
-                break;
-            case 10:
-                buffer2 = ',';
-                break;
-            default:
-                buffer2 += '0';
-        }
-        value += buffer1;
-        value += buffer2;
+        buffer1 = (buffer1 >= 10 && buffer1 <= 14) ? lookup[buffer1] : buffer1 + '0';
+        buffer2 = (buffer2 >= 10 && buffer2 <= 14) ? lookup[buffer2] : buffer2 + '0';
+        value[f * 2] = buffer1;
+        value[f * 2 + 1] = buffer2;
     }
     return value;
 }
