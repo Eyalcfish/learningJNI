@@ -9,9 +9,17 @@
 #define getBit(num,bit) (1 == ( (num >> bit) & 1))
 #define setBit(num,bit,bol) (num |= bol << bit)
 
+#define BIT_SWAP(input, output1, output2, bit_pos) \
+    { \
+        output1 = ((input >> bit_pos) & 1) | (output1 & ~(1 << 0)); \
+        output2 = (((input >> (bit_pos + 4)) & 1) << 0) | (output2 & ~(1 << 0)); \
+    }
+
 using namespace std;
 
 int get_file_size(std::string filename);
+
+inline char branchlessHash(char a);
 
 vector<string> compress(vector<string> contents);
 
@@ -88,12 +96,12 @@ inline vector<string> readFiles(vector<string> paths) {
 // CPP
 inline vector<vector<float>> fileOutput(string data) {
     //return sortValues(data);//decompress(data));
-    return sortValues(decompress(data));
+    //return sortValues(decompress(data));
     //string str = decompress(data);
     //string str = "1,2,3,4,5,6,7,\n1,2,3,4,5,6,7";
     //sortValues(str);
-    //decompress(data)
-    //return {{1}};
+    decompress(data);
+    return {{1}};
 }
 
 inline vector<vector<float>> sortValues(string data) {
@@ -228,7 +236,6 @@ vector<string> compress(vector<string> contents) {
                 }
                 for(int j = 0 ; j < 4 ; j++) {
                     size_t place = j;
-                    //cout << getBit(num,place);
                     setBit(buffer,place+f*4,getBit(num,place));
                 }
                 //cout << endl;
@@ -245,21 +252,21 @@ string decompress(const string& content) {
     size_t strSize = content.length();
     string value;
     value.resize(strSize * 2);
-    static constexpr char lookup[15] = {
-        '0', '0', '0', '0', '0', '0', '0', '0', '0', '0',',', '-', '.', '\n', 'E'
-    };
-    for (size_t f = 0; f < strSize; ++f) {
+    char buffer1 = 0;
+    char buffer2 = 0;
+    for (size_t f = 0; f < strSize; f++) {
         char curchar = content[f];
-        char buffer1 = 0;
-        char buffer2 = 0;
-        for (int j = 0; j < 4; ++j) {
-            setBit(buffer1, j, getBit(curchar, j));
-            setBit(buffer2, j, getBit(curchar, j + 4));
+        for (size_t j = 0; j < 4; j++) {
+            BIT_SWAP(curchar,buffer1,buffer2,j);
         }
-        buffer1 = (buffer1 >= 10 && buffer1 <= 14) ? lookup[buffer1] : buffer1 + '0';
-        buffer2 = (buffer2 >= 10 && buffer2 <= 14) ? lookup[buffer2] : buffer2 + '0';
-        value[f * 2] = buffer1;
-        value[f * 2 + 1] = buffer2;
+        value[f * 2] = branchlessHash(buffer1);
+        value[f * 2 + 1] = branchlessHash(buffer2);
+        buffer1 = 0;
+        buffer2 = 0;
     }
     return value;
+}
+
+inline char branchlessHash(char a) {
+    return ','*(a == 10) + '-'*(a==11) + '.'*(a==12) + '\n'*(a==13) + 'E'*(a==14) + (a+'0')*(a<10);
 }
