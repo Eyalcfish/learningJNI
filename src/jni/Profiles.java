@@ -6,8 +6,8 @@ public class Profiles {
     public String[] filePaths;
     public byte[][] files;
 
-    public Profiles(String[] filePaths) {
+    public Profiles(String[] filePaths,int accuracy) {
         this.filePaths = filePaths;
-        files = readFiles(filePaths);
+        files = readFiles(filePaths,accuracy);
     }
 }

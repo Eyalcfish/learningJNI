@@ -11,13 +11,13 @@
 
 using namespace std;
 
-vector<vector<float>> decompress_matrix(string str);
+vector<vector<float>> decompress_matrix(string str,short resolution);
 
-string compress_matrix(string str);
+string compress_matrix(string str,short resolution);
 
-inline vector<string> readFiles(vector<string> paths);
+inline vector<string> readFiles(vector<string> paths,short accuracy);
 
-inline vector<vector<float>> fileOutput(string data);
+inline vector<vector<float>> fileOutput(string data,short accuracy);
 
 std::vector<std::string> split(const std::string& input, char delimiter);
 
@@ -35,13 +35,13 @@ vector<string> jobjectArrayToVector(JNIEnv* env, jobjectArray jArray);
 // NativePipe:
 // public float[][] fileOutput(String data)
 // Native implementation
-JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, jclass obj,jbyteArray data) {
+JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, jclass obj,jbyteArray data,jint accuracy) {
     jsize length = env->GetArrayLength(data);
     jbyte* bytes = env->GetByteArrayElements(data, nullptr);
     std::string str(reinterpret_cast<char*>(bytes), length);
     env->ReleaseByteArrayElements(data, bytes, JNI_ABORT);
     //
-    vector<vector<float>> matrix = fileOutput(str);
+    vector<vector<float>> matrix = fileOutput(str,(int)accuracy);
     size_t size = matrix.size();
     vector<jfloatArray> array(matrix.size());
     for(int i = 0 ; i < size ; i++) {
@@ -53,16 +53,16 @@ JNIEXPORT _jobjectArray* JNICALL Java_jni_NativePipe_fileOutput(JNIEnv* env, jcl
 // NativePipe:
 // public String[] readFiles(String[] paths)
 // Native implementation
-JNIEXPORT jobjectArray JNICALL Java_jni_NativePipe_readFiles(JNIEnv * env, jclass obj, jobjectArray paths) {
+JNIEXPORT jobjectArray JNICALL Java_jni_NativePipe_readFiles(JNIEnv * env, jclass obj, jobjectArray paths,jint accuracy) {
     vector<string> CPP_paths = jobjectArrayToVector(env,paths);
-    vector<string> datas = readFiles(CPP_paths);
+    vector<string> datas = readFiles(CPP_paths,(int)accuracy);
     return convertVectorToByteArray(env,datas);
 }
 
 // HelloWorld:
 // public string[] readFiles(String[] paths)
 // CPP
-inline vector<string> readFiles(vector<string> paths) {
+inline vector<string> readFiles(vector<string> paths,short accuracy) {
     size_t amountOfPaths = paths.size();
     vector<string> contents(amountOfPaths);
     vector<string> rets(amountOfPaths);
@@ -76,7 +76,7 @@ inline vector<string> readFiles(vector<string> paths) {
         file.close();
     }
     for(int i = 0 ; i < amountOfPaths ; i++) {
-        rets[i] = compress_matrix(contents[i]);
+        rets[i] = compress_matrix(contents[i],accuracy);
     }
     return rets;
 }
@@ -84,8 +84,8 @@ inline vector<string> readFiles(vector<string> paths) {
 // HelloWorld:
 // public float[][] fileOutput(String data)
 // CPP
-inline vector<vector<float>> fileOutput(string data) {
-    return decompress_matrix(data);
+inline vector<vector<float>> fileOutput(string data,short accuracy) {
+    return decompress_matrix(data,accuracy);
 }
 
 inline vector<vector<float>> sortValues(string data) {
@@ -181,36 +181,40 @@ inline float bytesToFloat(unsigned char b0, unsigned char b1, unsigned char b2, 
     return output;
 }
 
-string compress_matrix(string str) {
+string compress_matrix(string str,short accuracy) {
     vector<vector<float>> matrix = sortValues(str);
     size_t size = matrix[0].size();
     string ret;
-    ret.resize(7*size*4);
+    ret.resize(7*size*accuracy);
     for(int i = 0 ; i < 7 ; i++) {
         for(int f = 0 ; f < size ; f++) {
             float cur = matrix[i][f];
-            unsigned char buffer[4]={0,0,0,0};
+            unsigned char buffer[4]={0};
             memcpy(buffer,&cur,4);
-            size_t place = i*size*4+f*4;
-            for(int j = 0; j < 4 ; j++) {
-                ret[place+j] = buffer[j];
+            size_t place = i*size*accuracy+f*accuracy;
+            for(int j = 4-accuracy; j < 4 ; j++) {
+                ret[place+j-(4-accuracy)] = buffer[j];
             }
         }
     }
     return ret;
 }
 
-vector<vector<float>> decompress_matrix(string str) {
+vector<vector<float>> decompress_matrix(string str,short accuracy) {
     size_t size = str.size();
-    size_t relativeSize = size/28;
+    size_t relativeSize = size/(7*accuracy);
     vector<vector<float>> matrix(7);
     for(int i = 0; i < 7 ; i++) {
         matrix[i].resize(relativeSize);
     }
     for(int i = 0 ; i < 7 ; i++) {
         for(int f = 0; f < relativeSize ; f++) {
-            short place = i*relativeSize*4+f*4;
-            matrix[i][f] = bytesToFloat(str[place + 3], str[place + 2], str[place + 1], str[place]);
+            short place = i*relativeSize*accuracy+f*accuracy;
+            float output = 0;
+            for(int j = 4-accuracy; j < 4 ; j++) {
+                *((unsigned char*)(&output) + j) = str[place + j - (4-accuracy)];
+            }
+            matrix[i][f] = output;
         }
     }
 
