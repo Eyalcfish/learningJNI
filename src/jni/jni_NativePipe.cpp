@@ -95,11 +95,8 @@ inline vector<string> readFiles(vector<string> paths) {
 // public float[][] fileOutput(String data)
 // CPP
 inline vector<vector<float>> fileOutput(string data) {
-    //return sortValues(data);//decompress(data));
     //return sortValues(decompress(data));
-    //string str = decompress(data);
-    //string str = "1,2,3,4,5,6,7,\n1,2,3,4,5,6,7";
-    //sortValues(str);
+
     decompress(data);
     return {{1}};
 }
@@ -249,20 +246,13 @@ vector<string> compress(vector<string> contents) {
 }
 
 string decompress(const string& content) {
-    size_t strSize = content.length();
+    size_t strSize = content.length()*2;
     string value;
-    value.resize(strSize * 2);
-    char buffer1 = 0;
-    char buffer2 = 0;
-    for (size_t f = 0; f < strSize; f++) {
-        char curchar = content[f];
-        for (size_t j = 0; j < 4; j++) {
-            BIT_SWAP(curchar,buffer1,buffer2,j);
-        }
-        value[f * 2] = branchlessHash(buffer1);
-        value[f * 2 + 1] = branchlessHash(buffer2);
-        buffer1 = 0;
-        buffer2 = 0;
+    value.resize(strSize);
+    for (short f = 0; f < strSize; f+=2) {
+        unsigned char curchar = content[f/2];
+        value[f] = branchlessHash(curchar%16);
+        value[f + 1] = branchlessHash(curchar/16);
     }
     return value;
 }
