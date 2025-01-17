@@ -4,18 +4,16 @@
 #include <string>
 #include <cmath>
 #include <jni.h>
-#include "C:/Users/Eyal/IdeaProjects/jniAttempts/out/bonus/jni_NativePipe.h"
+#include "C:/Users/fishministrator/IdeaProjects/learningJNI/out/bonus/jni_NativePipe.h"
 
 #define getBit(num,bit) (1 == ( (num >> bit) & 1))
 #define setBit(num,bit,bol) (num |= bol << bit)
 
-#define BIT_SWAP(input, output1, output2, bit_pos) \
-    { \
-        output1 = ((input >> bit_pos) & 1) | (output1 & ~(1 << 0)); \
-        output2 = (((input >> (bit_pos + 4)) & 1) << 0) | (output2 & ~(1 << 0)); \
-    }
-
 using namespace std;
+
+vector<vector<float>> decompress_matrix(string str);
+
+string compress_matrix(string str);
 
 inline char branchlessHash(char a);
 
@@ -30,6 +28,8 @@ inline vector<vector<float>> fileOutput(string data);
 std::vector<std::string> split(const std::string& input, char delimiter);
 
 inline vector<vector<float>> sortValues(string data);
+
+string jstringToStdString(JNIEnv* env, jstring jStr);
 
 jfloatArray convertVectorToJava(JNIEnv* env, const std::vector<float>& vec);
 
@@ -82,7 +82,11 @@ inline vector<string> readFiles(vector<string> paths) {
             contents[i] += s + '\n';
         file.close();
     }
-    return compress(contents);
+    //return contents;//compress(contents);
+    //cout << contents[0];
+    return {compress_matrix(contents[0])};
+    //return compress(contents);
+    //return {"1"};
 }
 
 // HelloWorld:
@@ -91,8 +95,10 @@ inline vector<string> readFiles(vector<string> paths) {
 inline vector<vector<float>> fileOutput(string data) {
     //return sortValues(decompress(data));
 
-    decompress(data);
-    return {{1}};
+    return decompress_matrix(data);
+
+    //decompress(data);
+    //return {{1}};
 }
 
 inline vector<vector<float>> sortValues(string data) {
@@ -239,13 +245,13 @@ vector<string> compress(vector<string> contents) {
     return ret;
 }
 
-string decompress(const string& content) {
+string decompress(const string& content) { // optimized decompress function
     size_t strSize = content.length()*2;
     string value;
     value.resize(strSize);
     for (short f = 0; f < strSize; f+=2) {
         unsigned char curchar = content[f/2];
-        value[f] = branchlessHash(curchar%16);
+        value[f] = branchlessHash((curchar%16));
         value[f + 1] = branchlessHash(curchar/16);
     }
     return value;
@@ -254,3 +260,57 @@ string decompress(const string& content) {
 inline char branchlessHash(char a) {
     return ','*(a == 10) + '-'*(a==11) + '.'*(a==12) + '\n'*(a==13) + 'E'*(a==14) + (a+'0')*(a<10);
 }
+
+
+
+float bytesToFloat(unsigned char b0, unsigned char b1, unsigned char b2, unsigned char b3)
+{
+    float output;
+
+    *((unsigned char*)(&output) + 3) = b0;
+    *((unsigned char*)(&output) + 2) = b1;
+    *((unsigned char*)(&output) + 1) = b2;
+    *((unsigned char*)(&output) + 0) = b3;
+
+    return output;
+}
+
+string compress_matrix(string str) {
+    vector<vector<float>> matrix = sortValues(str);
+    size_t size = matrix[0].size();
+    string ret;
+    ret.resize(7*size*4);
+    for(int i = 0 ; i < 7 ; i++) {
+        for(int f = 0 ; f < size ; f++) {
+            float cur = matrix[i][f];
+            unsigned char buffer[4]={0,0,0,0};
+            memcpy(buffer,&cur,4);
+            size_t place = i*size*4+f*4;
+            for(int j = 0; j < 4 ; j++) {
+                ret[place+j] = buffer[j];
+            }
+        }
+    }
+    return ret;
+}
+
+vector<vector<float>> decompress_matrix(string str) {
+    size_t size = str.size();
+    size_t relativeSize = size/28;
+    vector<vector<float>> matrix(7);
+    for(int i = 0; i < 7 ; i++) {
+        matrix[i].resize(relativeSize);
+    }
+    for(int i = 0 ; i < 7 ; i++) {
+        for(int f = 0; f < relativeSize ; f++) {
+            short place = i*relativeSize*4+f*4;
+            matrix[i][f] = bytesToFloat(str[place + 3], str[place + 2], str[place + 1], str[place]);
+        }
+    }
+
+    return matrix;
+}
+
+
+
+//            bytesToFloat(ret[i*size+f  ], ret[i*size+f+1], ret[i*size+f+2], ret[i*size+f+3])

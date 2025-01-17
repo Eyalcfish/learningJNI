@@ -2,22 +2,17 @@ package jni;
 
 import static jni.NativePipe.fileOutput;
 
-
 public class Main {
     public static void main(String[] args) {
-        Profiles obj = new Profiles(new String[]{"C:/Users/Eyal/IdeaProjects/jniAttempts/src/jni/thing.txt",
-                "C:/Users/Eyal/IdeaProjects/jniAttempts/src/jni/thing2.txt"}); // puts all the files ready for read
+        Profiles obj = new Profiles(new String[]{"C:/Users/fishministrator/IdeaProjects/learningJNI/src/jni/thing.txt"}); // puts all the files ready for read
 
-
-
-        long startTime = System.nanoTime();
+        double startTime = System.nanoTime();
 
         fileOutput(obj.files[0]);
 
-        long endTime = System.nanoTime();
-        long executionTime = (endTime - startTime);
-        System.out.println("Function takes " + executionTime);
-
+        double endTime = System.nanoTime();
+        double executionTime = (endTime - startTime)/1000000;
+        System.out.println("Function takes " + executionTime + "ms");
 
         float[][] a = fileOutput(obj.files[0]); // float[7][x]
 
