@@ -15,12 +15,6 @@ vector<vector<float>> decompress_matrix(string str);
 
 string compress_matrix(string str);
 
-inline char branchlessHash(char a);
-
-vector<string> compress(vector<string> contents);
-
-string decompress(const string& content);
-
 inline vector<string> readFiles(vector<string> paths);
 
 inline vector<vector<float>> fileOutput(string data);
@@ -28,8 +22,6 @@ inline vector<vector<float>> fileOutput(string data);
 std::vector<std::string> split(const std::string& input, char delimiter);
 
 inline vector<vector<float>> sortValues(string data);
-
-string jstringToStdString(JNIEnv* env, jstring jStr);
 
 jfloatArray convertVectorToJava(JNIEnv* env, const std::vector<float>& vec);
 
@@ -73,6 +65,7 @@ JNIEXPORT jobjectArray JNICALL Java_jni_NativePipe_readFiles(JNIEnv * env, jclas
 inline vector<string> readFiles(vector<string> paths) {
     size_t amountOfPaths = paths.size();
     vector<string> contents(amountOfPaths);
+    vector<string> rets(amountOfPaths);
     string s;
     for(int i = 0; i < amountOfPaths ; i++) {
         ifstream file;
@@ -82,23 +75,17 @@ inline vector<string> readFiles(vector<string> paths) {
             contents[i] += s + '\n';
         file.close();
     }
-    //return contents;//compress(contents);
-    //cout << contents[0];
-    return {compress_matrix(contents[0])};
-    //return compress(contents);
-    //return {"1"};
+    for(int i = 0 ; i < amountOfPaths ; i++) {
+        rets[i] = compress_matrix(contents[i]);
+    }
+    return rets;
 }
 
 // HelloWorld:
 // public float[][] fileOutput(String data)
 // CPP
 inline vector<vector<float>> fileOutput(string data) {
-    //return sortValues(decompress(data));
-
     return decompress_matrix(data);
-
-    //decompress(data);
-    //return {{1}};
 }
 
 inline vector<vector<float>> sortValues(string data) {
@@ -132,16 +119,6 @@ inline jobjectArray create2DFloatArray(JNIEnv* env, const std::vector<jfloatArra
         env->SetObjectArrayElement(twoDimArray, i, inputVec[i]);
     }
     return twoDimArray;
-}
-
-inline string jstringToStdString(JNIEnv* env, jstring jStr) {
-    if (!jStr) {
-        return "";
-    }
-    const char* utfChars = env->GetStringUTFChars(jStr, nullptr);
-    string result(utfChars);
-    env->ReleaseStringUTFChars(jStr, utfChars);
-    return result;
 }
 
 std::vector<std::string> split(const std::string& input, char delimiter) {
@@ -192,78 +169,7 @@ vector<string> jobjectArrayToVector(JNIEnv* env, jobjectArray jArray) {
     return vec;
 }
 
-int get_file_size(std::string filename) {
-    FILE *p_file = NULL;
-    p_file = fopen(filename.c_str(),"rb");
-    fseek(p_file,0,SEEK_END);
-    int size = ftell(p_file);
-    fclose(p_file);
-    return size;
-}
-
-vector<string> compress(vector<string> contents) {
-    vector<string> ret(contents.size());
-    int a = 0;
-    for(string str : contents) {
-        int size = (str.length()+1)/2;
-        char buffer = 0;
-        string value = "";
-        for(int i = 0 ; i < size ; i++) {
-            char num = 0;
-            for(int f = 0 ; f < 2 ; f++) {
-                char curchar = str[i*2+f];
-                switch(curchar){
-                    case ',':
-                        num =  10;
-                        break;
-                    case '-':
-                        num = 11;
-                        break;
-                    case '.':
-                        num = 12;
-                        break;
-                    case '\n':
-                        num = 13;
-                        break;
-                    case 'E':
-                        num = 14;
-                        break;
-                    default:
-                        num = curchar-'0';
-                }
-                for(int j = 0 ; j < 4 ; j++) {
-                    size_t place = j;
-                    setBit(buffer,place+f*4,getBit(num,place));
-                }
-                //cout << endl;
-            }
-            value += buffer;
-            buffer = 0;
-        }
-        ret[a] = value;
-    }
-    return ret;
-}
-
-string decompress(const string& content) { // optimized decompress function
-    size_t strSize = content.length()*2;
-    string value;
-    value.resize(strSize);
-    for (short f = 0; f < strSize; f+=2) {
-        unsigned char curchar = content[f/2];
-        value[f] = branchlessHash((curchar%16));
-        value[f + 1] = branchlessHash(curchar/16);
-    }
-    return value;
-}
-
-inline char branchlessHash(char a) {
-    return ','*(a == 10) + '-'*(a==11) + '.'*(a==12) + '\n'*(a==13) + 'E'*(a==14) + (a+'0')*(a<10);
-}
-
-
-
-float bytesToFloat(unsigned char b0, unsigned char b1, unsigned char b2, unsigned char b3)
+inline float bytesToFloat(unsigned char b0, unsigned char b1, unsigned char b2, unsigned char b3)
 {
     float output;
 
@@ -310,7 +216,3 @@ vector<vector<float>> decompress_matrix(string str) {
 
     return matrix;
 }
-
-
-
-//            bytesToFloat(ret[i*size+f  ], ret[i*size+f+1], ret[i*size+f+2], ret[i*size+f+3])

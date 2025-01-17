@@ -6,6 +6,8 @@ public class Main {
     public static void main(String[] args) {
         Profiles obj = new Profiles(new String[]{"C:/Users/fishministrator/IdeaProjects/learningJNI/src/jni/thing.txt"}); // puts all the files ready for read
 
+        System.out.println(obj.files[0].length);
+
         double startTime = System.nanoTime();
 
         fileOutput(obj.files[0]);
