@@ -17,8 +17,6 @@
 
 using namespace std;
 
-int get_file_size(std::string filename);
-
 inline char branchlessHash(char a);
 
 vector<string> compress(vector<string> contents);
@@ -32,8 +30,6 @@ inline vector<vector<float>> fileOutput(string data);
 std::vector<std::string> split(const std::string& input, char delimiter);
 
 inline vector<vector<float>> sortValues(string data);
-
-string jstringToStdString(JNIEnv* env, jstring jStr);
 
 jfloatArray convertVectorToJava(JNIEnv* env, const std::vector<float>& vec);
 
@@ -86,9 +82,7 @@ inline vector<string> readFiles(vector<string> paths) {
             contents[i] += s + '\n';
         file.close();
     }
-    //return contents;//compress(contents);
     return compress(contents);
-    //return {"1"};
 }
 
 // HelloWorld:
