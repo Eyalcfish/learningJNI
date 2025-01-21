@@ -1,16 +1,16 @@
 @echo off
 
-set OutputPath=C:\Users\Eyal\IdeaProjects\jniAttempts\out\bonus
-set NativePackagePath=C:\Users\Eyal\IdeaProjects\jniAttempts\src\jni
+set OutputPath=C:\Users\fishministrator\IdeaProjects\learningJNI\out\bonus
+set NativePackagePath=C:\Users\fishministrator\IdeaProjects\learningJNI\src\jni
 
-set Path_ExtraFiles=%NativePackagePath%\MyObject.java
+set Path_ExtraFiles=%NativePackagePath%\Profiles.java
 set Path_MainFile=%NativePackagePath%\Main.java
-set Path_NativeFile=%NativePackagePath%\HelloWorld.java
+set Path_NativeFile=%NativePackagePath%\NativePipe.java
 
-set Full_NativeFile=jni_HelloWorld
+set Full_NativeFile=jni_NativePipe
 set Full_MainFile=jni.Main
 
-set JAVA_HOME=C:\Program Files\Java\jdk-23
+set JAVA_HOME=C:\Program Files\Java\jdk-21
 
 cd %NativePackagePath%
 
